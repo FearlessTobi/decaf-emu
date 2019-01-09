@@ -28,10 +28,10 @@ brChainLookup(BinrecCore *core, ppcaddr_t address);
 static uint64_t
 brTimeBaseHandler(BinrecCore *core);
 
-static void
-brSyscallHandler(BinrecCore *core);
+static BinrecCore *
+brSyscallHandler(BinrecCore *core, uint32_t insn);
 
-static void
+static BinrecCore *
 brTrapHandler(BinrecCore *core);
 
 static void
@@ -376,17 +376,17 @@ BinrecBackend::resumeExecution()
 
          if (LIKELY(block)) {
             auto entry = reinterpret_cast<BinrecEntry>(block->code);
-            entry(core, memBase);
+            core = entry(core, memBase);
          } else {
             // Step over the current instruction, in case it's confusing
             // the translator.  TODO: Consider blacklisting the address to
             // avoid trying to translate it every time we encounter it.
             interpreter::step_one(core);
-         }
 
-         // If we just returned from a system call, we might have been
-         //  rescheduled onto a different core.
-         core = reinterpret_cast<BinrecCore *>(this_core::state());
+            // If we just returned from a system call, we might have been
+            //  rescheduled onto a different core.
+            core = reinterpret_cast<BinrecCore *>(this_core::state());
+         }
       } else { // mProfilingMask != 0
          const uint64_t start = rdtsc();
 
@@ -496,35 +496,30 @@ brTimeBaseHandler(BinrecCore *core)
 /**
  * Callback from libbinrec to handle system calls.
  */
-void
-brSyscallHandler(BinrecCore *core)
+BinrecCore *
+brSyscallHandler(BinrecCore *core, uint32_t insn)
 {
-   auto instr = mem::read<espresso::Instruction>(core->nia - 4);
+   // We intentionally do this before the actual kernel call handler
+   // to enable this method to be tail-call optimized.
+#ifdef DECAF_JIT_ALLOW_PROFILING
+   core->calledHLE = true;  // Suppress profiling for this call.
+#endif
+
+   auto instr = bit_cast<espresso::Instruction>(insn);
    auto kcId = instr.kcn;
 
    auto handler = cpu::getKernelCallHandler(kcId);
    auto newCore = handler(core, kcId);
 
    // We might have been rescheduled on a new core.
-   core = reinterpret_cast<BinrecCore *>(newCore);
-
-   // If the next instruction is a blr, execute it ourselves rather than
-   // spending the overhead of calling into JIT for just that instruction.
-   auto next_instr = mem::read<uint32_t>(core->nia);
-   if (next_instr == 0x4E800020) {
-      core->nia = core->lr;
-   }
-
-#ifdef DECAF_JIT_ALLOW_PROFILING
-   core->calledHLE = true;  // Suppress profiling for this call.
-#endif
+   return reinterpret_cast<BinrecCore *>(newCore);
 }
 
 
 /**
  * Callback from libbinrec to handle PPC trap exceptions.
  */
-void
+BinrecCore *
 brTrapHandler(BinrecCore *core)
 {
    if (!cpu::hasBreakpoint(core->nia)) {
@@ -533,6 +528,8 @@ brTrapHandler(BinrecCore *core)
    }
 
    // If we have a breakpoint, we will fall back to interpreter to handle it.
+
+   return core;
 }
 
 
