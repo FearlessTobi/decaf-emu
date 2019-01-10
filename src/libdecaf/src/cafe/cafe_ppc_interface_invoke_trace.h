@@ -21,7 +21,8 @@ logParam(fmt::memory_buffer &message,
       fmt::format_to(message, ", ");
    }
 
-   if constexpr (regType == RegisterType::VarArgs) {
+   if constexpr (regType == RegisterType::VarArgs)
+   {
       fmt::format_to(message, "...");
    } else {
       fmt::format_to(message, "{}", readParam(core, paramInfo));
@@ -39,11 +40,13 @@ invoke_trace_host_impl(cpu::Core *core,
    auto param_info = typename FunctionTraitsType::param_info { };
    fmt::format_to(message, "{}(", name);
 
-   if constexpr (FunctionTraitsType::is_member_function) {
+   if constexpr (FunctionTraitsType::is_member_function)
+   {
       fmt::format_to(message, "this = {}, ", readParam(core, typename FunctionTraitsType::object_info { }));
    }
 
-   if constexpr (FunctionTraitsType::num_args > 0) {
+   if constexpr (FunctionTraitsType::num_args > 0)
+   {
       (logParam<I>(message, core, std::get<I>(param_info)), ...);
    }
 

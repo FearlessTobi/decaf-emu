@@ -1,10 +1,13 @@
 #include "platform.h"
 #include "platform_stacktrace.h"
-#include <fmt/format.h>
 
 #ifdef PLATFORM_WINDOWS
+
+#define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
 #include <Dbghelp.h>
+
+#include <fmt/format.h>
 #include <memory>
 
 namespace platform
