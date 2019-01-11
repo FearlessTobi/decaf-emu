@@ -2,6 +2,26 @@ cmake_minimum_required(VERSION 3.2)
 project(decaf-emu C CXX)
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/CMakeModules")
 
+include(libraries/cotire.cmake)
+macro(enable_pch project_name)
+    set(IGNORED_PATHS "")
+    set(INCLUDED_PATHS "")
+
+    list(APPEND IGNORED_PATHS  "${CMAKE_SOURCE_DIR}")
+    list(APPEND IGNORED_PATHS  "${AVCODEC_INCLUDE_DIR}")
+    list(APPEND IGNORED_PATHS  "${AVFILTER_INCLUDE_DIR}")
+    list(APPEND IGNORED_PATHS  "${AVUTIL_INCLUDE_DIR}")
+    list(APPEND IGNORED_PATHS  "${SWSCALE_INCLUDE_DIR}")
+    list(APPEND INCLUDED_PATHS "${CMAKE_SOURCE_DIR}/libraries")
+    list(APPEND INCLUDED_PATHS "${CMAKE_SOURCE_DIR}/src/common")
+
+    set_target_properties(${project_name} PROPERTIES
+        COTIRE_ADD_UNITY_BUILD FALSE
+        COTIRE_PREFIX_HEADER_IGNORE_PATH "${IGNORED_PATHS}"
+        COTIRE_PREFIX_HEADER_INCLUDE_PATH "${INCLUDED_PATHS}")
+    cotire(${project_name})
+endmacro()
+
 include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake OPTIONAL RESULT_VARIABLE USING_CONAN)
 if(USING_CONAN)
     conan_basic_setup(NO_OUTPUT_DIRS)

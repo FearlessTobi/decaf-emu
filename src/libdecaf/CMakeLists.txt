@@ -56,3 +56,6 @@ if(MSVC)
     target_link_libraries(libdecaf ws2_32)
     target_compile_options(libdecaf PUBLIC /wd4251)
 endif()
+
+enable_pch(libdecaf)
+
