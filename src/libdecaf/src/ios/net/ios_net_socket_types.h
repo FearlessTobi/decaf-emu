@@ -25,9 +25,9 @@ CHECK_SIZE(SocketAddr, 0x10);
 
 struct SockerInAddr
 {
-   be2_val<uint32_t> s_addr;
+   be2_val<uint32_t> s_addr_; // s_addr is macrod by windows...
 };
-CHECK_OFFSET(SockerInAddr, 0x00, s_addr);
+CHECK_OFFSET(SockerInAddr, 0x00, s_addr_);
 CHECK_SIZE(SockerInAddr, 0x04);
 
 struct SocketAddrIn
